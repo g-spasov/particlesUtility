@@ -3,7 +3,7 @@ if __name__=="__main__":
     import numpy as np
     from .case_SI import simInhale
 
-from .simInhale import simInhale
+from .case_SI import simInhale
 import matplotlib.pyplot as plt
 import matplotlib
 import itertools
