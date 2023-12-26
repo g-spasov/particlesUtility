@@ -2,7 +2,7 @@
 This class contains all the adaptations of the cloud class to tread the simInhale simulation
 """
 
-from cloud import *
+from .cloud import *
 
 class simInhale(cloud):
 

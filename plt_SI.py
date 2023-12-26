@@ -1,4 +1,4 @@
-from case_SI import simInhale
+from .case_SI import simInhale
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
