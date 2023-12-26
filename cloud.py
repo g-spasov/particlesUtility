@@ -1,8 +1,8 @@
-import numpy as np
-import os
-import re
-import matplotlib.pyplot as plt
-import typing
+
+if __name__=="__main__":
+    import numpy as np
+    import os
+    import re
 
 
 def convert(str):

@@ -1,7 +1,11 @@
-from .case_SI import simInhale
+
+if __name__=="__main__":
+    import numpy as np
+    from .case_SI import simInhale
+
+
 import matplotlib.pyplot as plt
 import matplotlib
-import numpy as np
 import itertools
 
 def flip(items, ncol):
