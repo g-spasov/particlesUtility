@@ -3,6 +3,9 @@ This class contains all the adaptations of the cloud class to tread the simInhal
 """
 
 from .cloud import cloud
+import numpy as np
+import os
+import re
 
 class simInhale(cloud):
 

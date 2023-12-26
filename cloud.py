@@ -1,8 +1,7 @@
 
-if __name__=="__main__":
-    import numpy as np
-    import os
-    import re
+import numpy as np
+import os
+import re
 
 
 def convert(str):
