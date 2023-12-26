@@ -58,7 +58,7 @@ class cloud:
         self.active=np.array(a[start+1:end],dtype=np.bool_)
         del(a,start,end)
 
-    def getParticlesD(self,user_rp=None,default_rp=[re.compile(r"\d+\{\d+\.\d+[eE]\-\d+\}"),re.compile(r"\d+\{\d+[eE]\-\d+\}")]):
+    def getParticlesD(self,user_rp=[],default_rp=[re.compile(r"\d+\{\d+\.\d+[eE]\-\d+\}"),re.compile(r"\d+\{\d+[eE]\-\d+\}")]):
         """This method gets the particles' diameter:
             Reads the timeStep folder and gets all the particles that has NOT EXITED their diameter
             In case of single diameter:
