@@ -106,7 +106,8 @@ def triPlot(cA: list[simInhale],cN: list[str],filename,pd=4.3e-6 ,key='4.2999999
     #####################################################################################
     plt.savefig(f"{filename}.png",bbox_inches="tight")
 
-def plotTotalDF(cA: list[simInhale],cN: list[str],name, pd=4.3e-6, key='4.2999999999999995e-06', sim=True ):
+
+def plotTotalDF(cA: list[simInhale],cN: list[str],filename, pd=4.3e-6, key='4.2999999999999995e-06', sim=True ):
     """
         This program plots the total deposition over the simInhale geometry.
         Takes the following arguments:
@@ -117,3 +118,50 @@ def plotTotalDF(cA: list[simInhale],cN: list[str],name, pd=4.3e-6, key='4.299999
         -key->string: the particle diameter in key format
         -sim->bool: value that enables or si
     """
+    n=10
+    m=len(cA)+3
+
+    fontisize=3*n
+
+    matplotlib.rc('font',size=fontisize)
+
+    
+    n=n+fontisize//n
+    matplotlib.rcParams['lines.linewidth'] = 0.35*n
+    matplotlib.rcParams['lines.markersize']=1.4*n
+    matplotlib.rcParams['grid.linewidth']=0.2*n
+
+    n=n+fontisize//n
+
+    fig=plt.figure(figsize=[m,n],constrained_layout=True)
+    
+    gs = fig.add_gridspec(1,m)
+    gd=fig.add_subplot(gs[0,:m])
+
+    ##########################################################################################################################
+    gd.grid(zorder=0)
+    y=[100*case.totalStickes[0]/case.parcelsAddedTotal[0] for case in cA]
+    #x=[1+0.5*i for i in range(len(y))]
+    x=np.arange(1,len(y)+0.1,1,dtype=int)
+    if len(x)!=len(y):
+        raise ValueError
+
+    x=[x[i]+0.7*i for i in range(len(x))]
+    simInhale=np.loadtxt("./simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+    LES1=np.loadtxt("./simInhale/DF_LES1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+
+    gd.hlines(np.sum(simInhale["DF"]),0.5,m+0.5,label="Exp. (Lizal et al. 2015)",color="k",linestyles='dashed',zorder=10)
+    gd.hlines(np.sum(LES1["DF"]),0.5,m+0.5,label="LES1 (Koullapis et al. 2018)",color="grey",linestyles='dashed',zorder=10)
+
+    for i in range(len(y)):
+        gd.bar(x[i],y[i],width=1.5,zorder=i+2)
+
+    gd.set_ylim([0,(max(y)//10 +1)*10])
+   
+    gd.set_xlabel("Mesh size")
+    gd.set_ylabel("Total deposition fraction %")
+    gd.set_xticks(x,cN)
+
+    plt.savefig(f"{filename}.png",bbox_inches="tight")
+
+
