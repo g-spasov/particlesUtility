@@ -1,12 +1,10 @@
 
-if __name__=="__main__":
-    import numpy as np
-    from .case_SI import simInhale
-
 from .case_SI import simInhale
 import matplotlib.pyplot as plt
 import matplotlib
 import itertools
+import os
+import numpy as np
 
 def flip(items, ncol):
     return itertools.chain(*[items[i::ncol] for i in range(ncol)])
@@ -58,8 +56,8 @@ def triPlot(cA: list[simInhale],cN: list[str],filename,pd=4.3e-6 ,key='4.2999999
         raise ValueError
 
     x=[x[i]+0.7*i for i in range(len(x))]
-    simInhale=np.loadtxt("./simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
-    LES1=np.loadtxt("./simInhale/DF_LES1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+    simInhale=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+    LES1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_LES1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
 
     gd.hlines(np.sum(simInhale["DF"]),0.5,m+0.5,label="Exp. (Lizal et al. 2015)",color="k",linestyles='dashed',zorder=10)
     gd.hlines(np.sum(LES1["DF"]),0.5,m+0.5,label="LES1 (Koullapis et al. 2018)",color="grey",linestyles='dashed',zorder=10)
@@ -151,8 +149,8 @@ def plotTotalDF(cA: list[simInhale],cN: list[str],filename, pd=4.3e-6, key='4.29
         raise ValueError
 
     x=[x[i]+0.7*i for i in range(len(x))]
-    simInhale=np.loadtxt("./simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
-    LES1=np.loadtxt("./simInhale/DF_LES1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+    simInhale=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+    LES1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_LES1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
 
     gd.hlines(np.sum(simInhale["DF"]),0.5,m+0.5,label="Exp. (Lizal et al. 2015)",color="k",linestyles='dashed',zorder=10)
     gd.hlines(np.sum(LES1["DF"]),0.5,m+0.5,label="LES1 (Koullapis et al. 2018)",color="grey",linestyles='dashed',zorder=10)

@@ -1,7 +1,8 @@
-
 import numpy as np
 import os
 import re
+
+
 
 
 def convert(str):
@@ -81,7 +82,8 @@ class cloud:
             #pattern=re.compile(r"\d+\{\d+\.\d+[eE]\-\d+\}")
             #pattern2=re.compile(r"\d+\{\d+[eE]\-\d+\}")
             for string in d:
-                if np.sum([pattern.match(string) for pattern in rp])>0 :
+                tmp=[pattern.match(string) for pattern in rp]
+                if np.sum([True if mtch else False for mtch in tmp])>0 :
                     self.d=np.float32(string.split("{")[1].split("}")[0])*np.ones(len(self.active),dtype=np.float32)
                 
                 
@@ -122,7 +124,7 @@ class cloud:
                 continue
             if not os.path.isfile(pP+f"/{dir}/collectedData.txt"):
                 fld=pP+f"/{dir}"
-                os.system(f"bash MergeLagrangianPost.sh {fld}")
+                os.system(f"bash {os.path.dirname(__file__)}/MergeLagrangianPost.sh {fld}")
             tmp=np.loadtxt(pP+f"/{dir}/collectedData.txt",dtype=dt,converters=convert,usecols=(0,2,3,4,7))
             self.patchSticked[dir]=tmp
 

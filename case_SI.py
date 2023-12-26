@@ -2,7 +2,7 @@
 This class contains all the adaptations of the cloud class to tread the simInhale simulation
 """
 
-from .cloud import cloud
+from .cloud import cloud,convert
 import numpy as np
 import os
 import re
@@ -11,11 +11,16 @@ class simInhale(cloud):
 
     def __init__(self, timeStep, casePath=".") -> None:
         super().__init__(timeStep, casePath)
+
+        #This maps the simInale subdivision to your subdivision
         self.simInhalePatchID={"1":[f"Patch{i}" for i in range(1,6)],"2":["Patch6","Patch7"],"3":["P3"],
                                 "4":["P4"],"5":["P5"],"6":["P6"],"7":["P7"],"8":["P8"],"9":["P9"],"10":["P10"],
                                 "11":["P11"],"12":["P12"],"13":["P13_1"],"14":["P14_1"],"15":["P15_1"],"16":["P16_1"],
                                 "17":["P17_1"],"18":["P18_1"],"19":["P19_1"],"20":["P20_1"],"21":["P21_1"],"22":["P22_1"]}
 
+        self.getTotalInjected()
+        self.getParticleZoneInfo()
+        self.comparisionSimInhale()
 
     def getTotalInjected(self,filter=True):
         """This method reads the file inside timeStep/uniform/lagrangian/kinematicCloud/kinematicCloudOutputProperties
@@ -68,6 +73,20 @@ class simInhale(cloud):
             val=dir.split("particleZoneInfo")[-1]
             self.particleZoneInfo[self.outletMap[val]]=tmp
             del(tmp,dirs,f_dirs,i)
+
+    def comparisionSimInhale(self):
+        simInhale=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]),converters=float)
+        #Let's construct the correspective simInhale vectors
+        self.simInhale={}
+        for i,d in enumerate(self.diameters):
+            #self.simInhale[str(d)]=np.empty_like(simInhale)
+            tmp=np.empty_like(simInhale)
+            tmp["patch"]=simInhale["patch"]
+            for p,key in enumerate(self.simInhalePatchID.keys()):
+                tmp["DF"][p]=np.sum([self.depositionFraction[patch][i] for patch in self.simInhalePatchID[key]])
+            
+            self.simInhale[str(d)]=tmp
+            del(tmp)
 
     def calculatePassingParticles(self,d):
         """
