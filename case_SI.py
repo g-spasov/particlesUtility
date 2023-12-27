@@ -6,6 +6,7 @@ from .cloud import cloud,convert
 import numpy as np
 import os
 import re
+import pickle
 
 class simInhale(cloud):
 
@@ -21,6 +22,16 @@ class simInhale(cloud):
         self.getTotalInjected()
         self.getParticleZoneInfo()
         self.comparisionSimInhale()
+
+        try:
+            with open(f"{os.path.dirname(__file__)}/simInhale/lines.pkl","rb") as file:
+                self.lines=pickle.load(file)
+        except:
+            self.lines=None
+            raise Warning("The lines.pk does not exists so no generation analysis will be done.")
+
+        
+
 
     def getTotalInjected(self,filter=True):
         """This method reads the file inside timeStep/uniform/lagrangian/kinematicCloud/kinematicCloudOutputProperties
@@ -217,12 +228,59 @@ class simInhale(cloud):
         
 
         for j,key in enumerate(self.simInhalePatchID.keys()):
-            
             self.relativeDepositionFraction[key]=0
             for i in self.simInhalePatchID[key]:
                 self.relativeDepositionFraction[key]+=np.sum(self.patchSticked[i]["d"]==d)
-            
             self.relativeDepositionFraction[key]*=100/self.passingParticles[key]  
             y[j]=self.relativeDepositionFraction[key]
         
         return x,y
+    
+    def getlineSticked(self,savedata=True):
+        """
+        This method defines the following quantities:
+            -self.linesSticked : The number of particles that have sticked in each line of the self.lines varaible.
+                            It is a dictionary of dictionaries where each key is the particles' diameter and then the inner
+                            dictionary are the line id-keys.
+            -self.gensSticked: The number of particles that have sticked in each generation, this time it's a dictionary with the keys being
+                                again the diameters, but the values are arrays ordered per generation [0th, 1st, ..., 7th]
+
+            -self.linesStickedMean: The average number of particle sticked per generation, averaged over total number of injected and total
+                                    number of segments present per generation.
+            -self.ngens : Number of segmenets per generation
+            -self.gens  : Array containg the generations [0,1,2,3,4,..,7]
+        """
+
+        ps=self.positions[np.logical_not(self.active)]
+        ds=self.d[np.logical_not(self.active)]
+        self.linesSticked={str(d):{key:0 for key in self.lines.keys()} for d in self.diameters}
+
+        for ip,p in enumerate(ps):
+            dm=np.zeros(len(self.lines.keys()))
+            ks=[key for key in self.lines.keys()]
+            for i,key in enumerate(ks):
+                lp=self.lines[key]
+                dm[i]=np.min(np.linalg.norm(p*1e3 -lp,axis=1))
+            self.linesSticked[str(ds[ip])][ks[np.argmin(dm)]]+=1
+
+    #####################################################################
+        gens=[]
+        for key in self.lines.keys():
+            gens.append(int(key.split("_")[1]))
+
+        gens=np.sort(np.unique(gens))
+
+        self.gensSticked={str(d):{i:[] for i in gens} for d in self.diameters}
+        ngens=np.zeros(len(gens))
+        for key1 in self.linesSticked.keys():
+            for key in self.lines.keys():
+                i=int(key.split("_")[1])
+                self.gensSticked[key1][i].append(self.linesSticked[key1][key])
+                ngens[i]+=1
+
+
+        self.ngens=ngens
+
+        self.gens=gens
+        self.linesStickedMean={str(d):[100*np.mean(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i] for j in gens ] for i,d in enumerate(self.diameters)}
+        self.stdgenStocked={str(d):[100*np.std(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i] for j in gens ] for i,d in enumerate(self.diameters)}

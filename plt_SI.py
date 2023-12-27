@@ -1,10 +1,22 @@
 
 from .case_SI import simInhale
 import matplotlib.pyplot as plt
+from matplotlib.text import TextPath
+from matplotlib.transforms import Affine2D
+
 import matplotlib
 import itertools
 import os
 import numpy as np
+
+
+def calculate_text_length(text, fontsize):
+    text_path = TextPath((0, 0), text, size=fontsize)
+    #bb = text_path.get_extents(Affine2D().scale(fontsize))
+    bb=text_path.get_extents()
+    # Length of the bounding box in x-direction
+    length = bb.width
+    return length
 
 def flip(items, ncol):
     return itertools.chain(*[items[i::ncol] for i in range(ncol)])
@@ -23,53 +35,83 @@ def triPlot(cA: list[simInhale],cN: list[str],filename,pd=4.3e-6 ,key='4.2999999
     3. Local deposition
     """
 
+    bigName=" ".join(cN)
 
-    n=10
-    m=len(cA)+3
 
-    fontisize=3*n
-
-    matplotlib.rc('font',size=fontisize)
 
     
-    n=n+fontisize//n
+    n=10
+    fontsize=7*n
+
+    length=calculate_text_length(bigName,fontsize=fontsize)
+    length0=calculate_text_length("_",fontsize=fontsize)
+
+    nn= len(cN)+1
+
+
+    m=np.int32(np.ceil(length/(nn*length0)))  #+len(cN)
+
+    print(length,length0,m,nn)
+
+
+    #m=len(cA)+3
+
+
+    matplotlib.rc('font',size=fontsize)
+
+    extras_space=1
+    n=n+fontsize//n
+    n=int(1.6*n)
     matplotlib.rcParams['lines.linewidth'] = 0.35*n
     matplotlib.rcParams['lines.markersize']=1.4*n
     matplotlib.rcParams['grid.linewidth']=0.2*n
+    
 
-    n=n+fontisize//n
-    fig = plt.figure(figsize=[m+2*n,n],constrained_layout=True)
-    gs = fig.add_gridspec(1,m+2*n)
+     #fontsize//n
+    fig = plt.figure(figsize=[m+2*n+2*extras_space,n],constrained_layout=True)
+    gs = fig.add_gridspec(1,m+2*n+2*extras_space)
 
     gd=fig.add_subplot(gs[0,:m])
-    td=fig.add_subplot(gs[0,m:m+n])
-    ld=fig.add_subplot(gs[0,m+n:])
+    td=fig.add_subplot(gs[0,extras_space+m:m+n])
+    ld=fig.add_subplot(gs[0,extras_space+m+n:])
 
+    plt.setp(gd.spines.values(), linewidth=5)
+    plt.setp(td.spines.values(), linewidth=5)
+    plt.setp(ld.spines.values(), linewidth=5)
 
 
     ##########################################################################################################################
     gd.grid(zorder=0)
     y=[100*case.totalStickes[0]/case.parcelsAddedTotal[0] for case in cA]
     #x=[1+0.5*i for i in range(len(y))]
-    x=np.arange(1,len(y)+0.1,1,dtype=int)
-    if len(x)!=len(y):
-        raise ValueError
+    
+    xmax=length/length0
+    x=np.linspace(0,xmax,num=len(cA)+1,endpoint=True)
 
-    x=[x[i]+0.7*i for i in range(len(x))]
+    x=[0.5*(x[i]+x[i+1]) for i in range(len(x)-1)]
+    # x=np.arange(1,length/length0,1,dtype=int)
+    if len(x)!=len(y):
+        raise ValueError(f"len(x)={len(x)}, len(y)={len(cN)}")
+
+    #x=[x[i]+0.7*i for i in range(len(x))]
     simInhale=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
     LES1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_LES1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
 
-    gd.hlines(np.sum(simInhale["DF"]),0.5,m+0.5,label="Exp. (Lizal et al. 2015)",color="k",linestyles='dashed',zorder=10)
-    gd.hlines(np.sum(LES1["DF"]),0.5,m+0.5,label="LES1 (Koullapis et al. 2018)",color="grey",linestyles='dashed',zorder=10)
+    gd.hlines(np.sum(simInhale["DF"]),0,xmax,label="Exp. (Lizal et al. 2015)",color="k",linestyles='dashed',zorder=10)
+    gd.hlines(np.sum(LES1["DF"]),0,xmax,label="LES1 (Koullapis et al. 2018)",color="grey",linestyles='dashed',zorder=10)
 
     for i in range(len(y)):
-        gd.bar(x[i],y[i],width=1.5,zorder=i+2)
+        gd.bar(x[i],y[i],width=0.9*xmax/len(y),zorder=i+2)
 
-    gd.set_ylim([0,(max(y)//10 +1)*10])
+    _,ymax=gd.get_ylim()
+
+    print(ymax)
+    gd.set_ylim([0,((ymax)//5 +1)*5])
    
-    gd.set_xlabel("Mesh size")
+    #gd.set_xlabel("Mesh size")
     gd.set_ylabel("Total deposition fraction %")
-    gd.set_xticks(x,cN)
+    gd.set_xticks(x,[])
+    #gd.set_xticks(x,cN)
     ###################################################################################
     td.grid(which="both",zorder=0)
 
@@ -80,8 +122,11 @@ def triPlot(cA: list[simInhale],cN: list[str],filename,pd=4.3e-6 ,key='4.2999999
         td.scatter(simInhale["patch"],simInhale["DF"],label="Exp. (Lizal et al. 2015)",c="k",zorder=7,alpha=0.8)
 
     td.set_ylim([0,8])
-    td.set_xlabel("Patch")
-    td.set_xticks(simInhale["patch"])
+    td.set_xlabel("Patch number")
+    # td.set_xticks(simInhale["patch"])
+
+    td.set_xticks(simInhale["patch"][0::2])
+    td.set_xticks(simInhale["patch"][1::2],minor=True)
     td.set_ylabel("Deposition fraction %")
     
     ############### LEGEND HANDLING
@@ -90,16 +135,17 @@ def triPlot(cA: list[simInhale],cN: list[str],filename,pd=4.3e-6 ,key='4.2999999
     hnd=hand_gd+hand_td
     lbl=lables_gd+lables_td
     ncols=2 #(m+1*sim)//2
-    fig.legend(flip(hnd,ncols),flip(lbl,ncols),loc='upper center',
-               bbox_to_anchor=((m+ncols+0.45*n)/(m+2*n), 0.95), ncol=ncols, fancybox=True, shadow=True,
+    fig.legend(flip(hnd,ncols),flip(lbl,ncols),loc='upper right',
+               bbox_to_anchor=((n+m)/(m+2*n), 0.97), ncol=ncols, fancybox=True, shadow=True,
                fontsize=1.7*n)
-    ###################################################################################
+    ###################################################################################(m+ncols+0.45*n)/(m+2*n)
     ld.grid(which="both",zorder=0)
     for i,case in enumerate(cA):
         x_,y_=case.getRelativeDeposition(pd)
         ld.scatter(x_,y_,zorder=i+2)
-    ld.set_xlabel("Patch")
-    ld.set_xticks(simInhale["patch"])
+    ld.set_xlabel("Patch number")
+    ld.set_xticks(simInhale["patch"][0::2])
+    ld.set_xticks(simInhale["patch"][1::2],minor=True)
     ld.set_ylabel("Deposition efficiency %")
     
     _,ymax=ld.get_ylim()
@@ -123,17 +169,17 @@ def plotTotalDF(cA: list[simInhale],cN: list[str],filename, pd=4.3e-6, key='4.29
     n=10
     m=len(cA)+3
 
-    fontisize=3*n
+    fontsize=3*n
 
-    matplotlib.rc('font',size=fontisize)
+    matplotlib.rc('font',size=fontsize)
 
     
-    n=n+fontisize//n
+    n=n+fontsize//n
     matplotlib.rcParams['lines.linewidth'] = 0.35*n
     matplotlib.rcParams['lines.markersize']=1.4*n
     matplotlib.rcParams['grid.linewidth']=0.2*n
 
-    n=n+fontisize//n
+    n=n+fontsize//n
 
     fig=plt.figure(figsize=[m,n],constrained_layout=True)
     
@@ -167,3 +213,131 @@ def plotTotalDF(cA: list[simInhale],cN: list[str],filename, pd=4.3e-6, key='4.29
     plt.savefig(f"{filename}.png",bbox_inches="tight")
 
 
+def plotDiameterTUL(case: simInhale,caseName:str,filename, pd=4.3e-6, key='4.2999999999999995e-06', sim=True ):
+    """
+        This program plots the total deposition over the simInhale geometry.
+        Resolved per diameter and divides it in lower and upper DR
+        Takes the following arguments:
+        -cA : a list of simInhale cases to be compared
+        -cN: a listo of strings being the names of the cases
+        -name->str: path to save the plot
+        -pd->float : particle's diameter
+        -key->string: the particle diameter in key format
+        -sim->bool: value that enables or si
+    """
+    
+    n=10
+    fontsize=7*n
+
+    m=n  #+len(cN)
+  
+    matplotlib.rc('font',size=fontsize)
+
+    extras_space=1
+    n=n+fontsize//n
+    n=int(1.6*n)
+    matplotlib.rcParams['lines.linewidth'] = 0.35*n
+    matplotlib.rcParams['lines.markersize']=1.4*n
+    matplotlib.rcParams['grid.linewidth']=0.2*n
+    
+    m=n
+    fig = plt.figure(figsize=[m+2*n+2*extras_space,n],constrained_layout=True)
+    gs = fig.add_gridspec(1,m+2*n+2*extras_space)
+
+    gd=fig.add_subplot(gs[0,:m])
+    ud=fig.add_subplot(gs[0,extras_space+m:m+n])
+    ld=fig.add_subplot(gs[0,extras_space+m+n:])
+
+    plt.setp(gd.spines.values(), linewidth=5)
+    plt.setp(ud.spines.values(), linewidth=5)
+    plt.setp(ld.spines.values(), linewidth=5)
+
+
+    ##########################################################################################################################
+    ## Global deposition 
+    simInhale=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+    LES1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_LES1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+        
+    wedel=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/Wedel.csv")
+    les1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/LES1-p.csv")
+    y=100*case.totalStickes/case.parcelsAddedTotal
+    ds=np.unique(case.d)
+
+    gd.grid(zorder=1)
+    gd.scatter(ds*1e6,y,c="C0",label="Current")
+    curr1,=gd.plot(ds*1e6,y,c="C0")
+    gd.set_xlabel(r"$d(\mu m)$")
+    gd.set_ylabel(r"Global depostion %")
+    gd.set_yticks([10*i for i in range(11)])
+    gd.set_xticks([i for i in range(1,11)])
+
+    gd.scatter(wedel[:,0],wedel[:,1],c="C2",label="Wedel")
+    curr2,=gd.plot(wedel[:,0],wedel[:,1],c="C2")
+
+    gd.scatter(les1[:,0],les1[:,1],c="C1",label="LES1")
+    curr3,=gd.plot(les1[:,0],les1[:,1],c="C1")
+        # gd.scatter(4.3,np.sum(LES1["DF"]),c="C2")
+        # print(np.sum(LES1["DF"]))
+    gd.scatter(4.3,np.sum(simInhale["DF"]),c="k",label="simInhale-exp")
+                
+    gd.legend()
+
+
+        ## Upper deposition
+    wedel=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/Wedel_upper.csv")
+    les1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/LES1-p2.csv")
+    d_les=[0.5,1,2,2.5,4,4.3,5,6,8,10]
+    y_les=[np.sum(les1[:2,i+1]) for i in range(len(d_les))]
+    ud.grid(which="both",zorder=0)
+
+    y=[]
+    for key in case.simInhale.keys():
+        x=case.simInhale[key]["patch"]
+        y.append(np.sum(case.simInhale[key]["DF"][0:2]))
+
+    ud.scatter(ds*1e6,y,c="C0",label="Current")
+    ud.plot(ds*1e6,y,c="C0")
+
+    ud.scatter(d_les,y_les,c="C1",label="LES1")
+    ud.plot(d_les,y_les,c="C1")
+
+    ud.scatter(wedel[:,0],wedel[:,1],c="C2",label="Wedel")
+    ud.plot(wedel[:,0],wedel[:,1],c="C2")
+
+    ud.scatter(4.3,np.sum(simInhale["DF"][:2]),c="k",label="simInhale-exp")
+
+    ud.set_xlabel(r"$d(\mu m)$")
+    ud.set_ylabel(r"Upper global depostion %")
+    ud.set_yticks([10*i for i in range(11)])
+    ud.set_xticks([i for i in range(1,11)])
+    
+    ud.legend()
+    ## Lower deposition
+    ld.grid(which="both",zorder=0)
+    wedel=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/Wedel_lower.csv")
+
+    les1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/LES1-p2.csv")
+    d_les=[0.5,1,2,2.5,4,4.3,5,6,8,10]
+    y_les=[np.sum(les1[2:,i+1]) for i in range(len(d_les))]
+
+    y=[]
+    for key in case.simInhale.keys():
+        x=case.simInhale[key]["patch"]
+        y.append(np.sum(case.simInhale[key]["DF"][2:]))
+
+    ld.scatter(d_les,y_les,c="C1",label="LES1")
+    ld.plot(d_les,y_les,c="C1")
+
+    ld.scatter(wedel[:,0],wedel[:,1],c="C2",label="Wedel")
+    ld.plot(wedel[:,0],wedel[:,1],c="C2")
+
+    ld.scatter(4.3,np.sum(simInhale["DF"][2:]),c="k",label="simInhale-exp")
+    ld.scatter(ds*1e6,y,c="C0",label="Currend")
+    ld.plot(ds*1e6,y,c="C0")
+    ld.set_xlabel(r"$d(\mu m)$")
+    ld.set_ylabel(r"Lower global depostion %")
+    ld.set_yticks([10*i for i in range(11)])
+    ld.set_xticks([i for i in range(1,11)])
+    ld.legend()
+
+    plt.savefig(f"./{filename}.png",bbox_inches="tight")
