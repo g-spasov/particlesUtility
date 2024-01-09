@@ -206,7 +206,7 @@ def plotTotalDF(cA: list[simInhale],cN: list[str],filename, pd=4.3e-6, key='4.29
 
     gd.set_ylim([0,(max(y)//10 +1)*10])
    
-    gd.set_xlabel("Mesh size")
+    gd.set_xlabel("Patch number")
     gd.set_ylabel("Total deposition fraction %")
     gd.set_xticks(x,cN)
 
@@ -339,5 +339,143 @@ def plotDiameterTUL(case: simInhale,caseName:str,filename, pd=4.3e-6, key='4.299
     ld.set_yticks([10*i for i in range(11)])
     ld.set_xticks([i for i in range(1,11)])
     ld.legend()
+    plt.savefig(f"./{filename}.png",bbox_inches="tight")
+
+
+def dfVariability(cases: list[simInhale],filename: str, pd=4.3e-6, key='4.3e-06', sim="LES" ):
+    """"
+        This fuction plots the  Deposition Fraction variability of the presented case againts the LES/RANS data.
+        
+        Input:
+            -cases : a list of simInhale data of which the data will be shown there is no naming of the cases
+            -filename: the name of the plot can be a path+name, withouth the extension, the file will be a .png
+            - pd: particle diameter
+            - key: particle diameter key
+            - sim: "LES" or "RANS" option denoting which dataset to compare againts
+    """
+    n=10
+    m=n
+
+    fontsize=3*n
+
+    matplotlib.rc('font',size=fontsize)
+
+    
+    n=n+fontsize//n
+    matplotlib.rcParams['lines.linewidth'] = 0.35*n
+    matplotlib.rcParams['lines.markersize']=1.4*n
+    matplotlib.rcParams['grid.linewidth']=0.2*n
+
+    n=n+fontsize//n
+
+    m=n
+
+    fig=plt.figure(figsize=[n,n],constrained_layout=True)
+    
+    gs = fig.add_gridspec(1,n)
+    gd=fig.add_subplot(gs[0,:n])
+
+    gd.grid(zorder=0)
+    
+    #Reas the simInhale-experimental data
+    siexp=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/simInhale_data.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+    x=siexp["patch"]
+
+    if sim=="LES":
+        LES1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_LES1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+        LES2=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_LES2_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+        LES3=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_LES3_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+
+        y=[]
+        for i in range(len(LES1["patch"])):
+            y.append([np.min([LES1["DF"][i],LES2["DF"][i],LES3["DF"][i]]),np.max([LES1["DF"][i],LES2["DF"][i],LES3["DF"][i]])  ])
+    if sim=="RANS":
+        RANS1=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_RANS1_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+        RANS2=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_RANS2_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+        RANS3=np.loadtxt(f"{os.path.dirname(__file__)}/simInhale/DF_RANS3_Koullapis.csv",dtype=np.dtype([("patch",np.uint8),("DF",np.float64)]))
+
+        y=[]
+        for i in range(len(RANS1["patch"])):
+            y.append([np.min([RANS1["DF"][i],RANS2["DF"][i],RANS3["DF"][i]]),np.max([RANS1["DF"][i],RANS2["DF"][i],RANS3["DF"][i]])])
+
+
+    ydata=[]
+
+    for i in range(len(siexp["patch"])):
+        #case.simInhale[key]["patch"],case.simInhale[key]["DF"]
+        tmp=[case.simInhale[key]["DF"][i] for case in cases]
+        tmp2=[np.min(tmp),np.max(tmp)]
+        ydata.append(tmp2)
+
+    for i,x_ in enumerate(siexp["patch"]):
+        if i==0:
+            gd.vlines(x_,ydata[i][0],ydata[i][1],colors="C0",label="Current")
+            gd.vlines(x_+0.1,y[i][0],y[i][1],colors="C1",label=sim+" (Koullapis et al. 2018)")
+        else:
+            gd.vlines(x_,ydata[i][0],ydata[i][1],colors="C0")
+            gd.vlines(x_+0.1,y[i][0],y[i][1],colors="C1")
+
+
+    gd.scatter(x,siexp["DF"],c="k",label="Exp. (Lizal et al. 2015)")
+
+    gd.set_xlabel("Patch number")
+    gd.set_ylabel("Deposition fraction %")
+    gd.set_xticks(x)
+
+    gd.set_ylim([0,7.5])
+    fig.legend()
+
+    plt.savefig(f"./{filename}.png",bbox_inches="tight")
+
+def segmentDFperGeneration(cases: list[simInhale],cases_names: list[str],filename: str, pd=4.3e-6, key='4.3e-06'):
+    """
+    This function generates the plot of the Deposition fraction per segment of a given generation generation, i.e.
+        DF vs. Generation number
+
+        Inputs:
+            -cases: list of simINhale cases
+            -cases_names: The names to be printed inside the legend
+            -filename: The name of the figure to be saved
+            -pd: particle's diameter
+            -key: particle's diameter key
+    """
+
+    n=10
+    fontsize=3*n
+    matplotlib.rc('font',size=fontsize)
+
+    n=n+fontsize//n
+    matplotlib.rcParams['lines.linewidth'] = 0.35*n
+    matplotlib.rcParams['lines.markersize']=1.4*n
+    matplotlib.rcParams['grid.linewidth']=0.2*n
+
+    n=n+fontsize//n
+
+    fig=plt.figure(figsize=[n,n],constrained_layout=True)
+    
+    gs = fig.add_gridspec(1,n)
+    gd=fig.add_subplot(gs[0,:n])
+    gd.grid(zorder=0)
+
+    for i,case in enumerate(cases):
+        case.getlineSticked()
+        gens=case.gens
+        ymean=case.linesStickedMean[key]
+
+        ys=case.lineStickedArray[key]
+
+        ystd=case.stdgenStocked[key]
+
+        gd.errorbar(gens,ymean,yerr=np.array(ystd),label=cases_names[i])
+        for g in gens:
+            gd.scatter(len(ys[g])*[g],ys[g])
+
+
+
+    gd.set_xlabel("Generation number")
+    gd.set_ylabel("Deposition fraction per branch %")
+    gd.set_xticks(gens)
+
+    fig.legend()
 
     plt.savefig(f"./{filename}.png",bbox_inches="tight")

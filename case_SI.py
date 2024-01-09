@@ -36,9 +36,12 @@ class simInhale(cloud):
     def getTotalInjected(self,filter=True):
         """This method reads the file inside timeStep/uniform/lagrangian/kinematicCloud/kinematicCloudOutputProperties
             which contains the injection data for each particles and filters the ones that are inside the inlet
-            [WANING: The filtering is specific for this geometry, if one does not want to filter modify the mothod argomenti filter=False ]"""
+            [WANING: The filtering is specific for this geometry, if one does not want to filter modify the mothod argomenti filter=False ]
+        """
+        
         tmp = np.genfromtxt(f"{self.casePath}/{self.timeStep}/uniform/lagrangian/kinematicCloud/kinematicCloudOutputProperties",dtype=np.str_,delimiter="\n")
-        self.diameters=np.array([np.float64(j.split("model")[1]) for j in tmp if "model" in j ])
+        self.diameters=np.unique(self.d) #np.array([np.float64(j.split("model")[1]) for j in tmp if "model" in j ])
+        self.diameters_str=np.array([np.str_(d) for d in self.diameters]) #np.array([j.split("model")[1] for j in tmp if "model" in j ])
         self.parcelsAddedTotal=[np.int32(j.split()[1].split(";")[0]) for j in tmp if "parcelsAddedTotal" in j]
 
         #Let's save the particles that are inside the pipe and are active
@@ -253,14 +256,19 @@ class simInhale(cloud):
 
         ps=self.positions[np.logical_not(self.active)]
         ds=self.d[np.logical_not(self.active)]
-        self.linesSticked={str(d):{key:0 for key in self.lines.keys()} for d in self.diameters}
+        self.linesSticked={str(d):{key:0 for key in self.lines.keys()} for d in self.diameters_str}
 
+        print(self.linesSticked.keys(),self.diameters)
+
+        print(type(self.diameters[0]))
         for ip,p in enumerate(ps):
             dm=np.zeros(len(self.lines.keys()))
             ks=[key for key in self.lines.keys()]
             for i,key in enumerate(ks):
                 lp=self.lines[key]
                 dm[i]=np.min(np.linalg.norm(p*1e3 -lp,axis=1))
+            
+            
             self.linesSticked[str(ds[ip])][ks[np.argmin(dm)]]+=1
 
     #####################################################################
@@ -280,7 +288,10 @@ class simInhale(cloud):
 
 
         self.ngens=ngens
-
         self.gens=gens
-        self.linesStickedMean={str(d):[100*np.mean(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i] for j in gens ] for i,d in enumerate(self.diameters)}
-        self.stdgenStocked={str(d):[100*np.std(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i] for j in gens ] for i,d in enumerate(self.diameters)}
+
+        self.lineStickedArray={str(d):[100*np.array(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i] for j in gens]  for i,d in enumerate(self.diameters)}
+
+
+        self.linesStickedMean={str(d):np.array([np.mean(100*np.array(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i]) for j in gens])  for i,d in enumerate(self.diameters)}
+        self.stdgenStocked={str(d):np.array([np.std(100*np.array(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i]) for j in gens])  for i,d in enumerate(self.diameters)}
