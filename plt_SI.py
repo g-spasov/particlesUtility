@@ -427,7 +427,7 @@ def dfVariability(cases: list[simInhale],filename: str, pd=4.3e-6, key='4.3e-06'
 
     plt.savefig(f"./{filename}.png",bbox_inches="tight")
 
-def segmentDFperGeneration(cases: list[simInhale],cases_names: list[str],filename: str, pd=4.3e-6, key='4.3e-06'):
+def segmentDFperGeneration(cases: list[simInhale],cases_names: list[str],filename: str, pd=4.3e-6, key='4.3e-06',savenames=None, **kwargs):
     """
     This function generates the plot of the Deposition fraction per segment of a given generation generation, i.e.
         DF vs. Generation number
@@ -438,10 +438,15 @@ def segmentDFperGeneration(cases: list[simInhale],cases_names: list[str],filenam
             -filename: The name of the figure to be saved
             -pd: particle's diameter
             -key: particle's diameter key
+
+            -savenames=None #List of names to give to the case which will be appended to the relative files used in the case.getLineSticked and case.loadLineSticked() methods
+            -**kwargs refer to optional arguments used in the case.getLineSticked and case.loadLineSticked methods i.e.:
+                -savedata=False #Name if the data are not preset will be calculated using the case.getLineSticked() method, and if one wants to save the data, this should be True
+                -savefolder="./generationDepositionData" : The folder in which the data will be saved, this is the default value
     """
 
-    n=10
-    fontsize=3*n
+    n=15
+    fontsize=4*n
     matplotlib.rc('font',size=fontsize)
 
     n=n+fontsize//n
@@ -458,24 +463,26 @@ def segmentDFperGeneration(cases: list[simInhale],cases_names: list[str],filenam
     gd.grid(zorder=0)
 
     for i,case in enumerate(cases):
-        case.getlineSticked()
+        kwargs["savename"]=savenames[i]
+        try:
+            case.loadLineSticked(**kwargs)
+        except:
+            print(f"Generation data not preset for case {savenames[i]}, going to calculate them...")
+            case.getLineSticked(**kwargs)
         gens=case.gens
-        ymean=case.linesStickedMean[key]
 
-        ys=case.lineStickedArray[key]
+        ymean=case.generationSticked[key]
 
-        ystd=case.stdgenStocked[key]
-
-        gd.errorbar(gens,ymean,yerr=np.array(ystd),label=cases_names[i])
-        for g in gens:
-            gd.scatter(len(ys[g])*[g],ys[g])
-
+        gd.scatter(gens,ymean,label=cases_names[i])
+        
 
 
     gd.set_xlabel("Generation number")
-    gd.set_ylabel("Deposition fraction per branch %")
+    gd.set_ylabel("Deposition fraction %")
     gd.set_xticks(gens)
-
-    fig.legend()
+    gd.set_ylim([0,gd.get_ylim()[1]])
+    fig.legend(loc='upper left',bbox_to_anchor=(0.1,0.95),fancybox=True, shadow=True)
+    # fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1),
+    #       ncol=3, fancybox=True, shadow=True)
 
     plt.savefig(f"./{filename}.png",bbox_inches="tight")

@@ -239,7 +239,7 @@ class simInhale(cloud):
         
         return x,y
     
-    def getlineSticked(self,savedata=True):
+    def getLineSticked(self,savename=None,savedata=False,savefolder="./generationDepositionData"):
         """
         This method defines the following quantities:
             -self.linesSticked : The number of particles that have sticked in each line of the self.lines varaible.
@@ -253,6 +253,7 @@ class simInhale(cloud):
             -self.ngens : Number of segmenets per generation
             -self.gens  : Array containg the generations [0,1,2,3,4,..,7]
         """
+        
 
         ps=self.positions[np.logical_not(self.active)]
         ds=self.d[np.logical_not(self.active)]
@@ -292,6 +293,35 @@ class simInhale(cloud):
 
         self.lineStickedArray={str(d):[100*np.array(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i] for j in gens]  for i,d in enumerate(self.diameters)}
 
-
+        self.generationSticked={str(d):np.array([np.sum(100*np.array(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i]) for j in gens])  for i,d in enumerate(self.diameters)}
         self.linesStickedMean={str(d):np.array([np.mean(100*np.array(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i]) for j in gens])  for i,d in enumerate(self.diameters)}
         self.stdgenStocked={str(d):np.array([np.std(100*np.array(self.gensSticked[str(d)][j])/self.parcelsAddedTotal[i]) for j in gens])  for i,d in enumerate(self.diameters)}
+
+        if savedata and savename!=None:
+            os.makedirs(f"{savefolder}",exist_ok=True)
+
+            with open(f"{savefolder}/gens_{savename}.pkl", 'wb') as file: 
+                pickle.dump(self.gens, file)
+
+            with open(f"{savefolder}/generationSticked_{savename}.pkl", 'wb') as file: 
+                pickle.dump(self.generationSticked, file)
+
+            with open(f"{savefolder}/linesStickedMean_{savename}.pkl", 'wb') as file: 
+                pickle.dump(self.linesStickedMean, file)
+
+            with open(f"{savefolder}/stdgenStocked_{savename}.pkl", 'wb') as file: 
+                pickle.dump(self.stdgenStocked, file)
+
+    def loadLineSticked(self,savename=None,savefolder="./generationDepositionData",savedata=None):
+        with open(f"{savefolder}/gens_{savename}.pkl", 'rb') as file: 
+            self.gens=pickle.load(file)
+
+        with open(f"{savefolder}/generationSticked_{savename}.pkl", 'rb') as file: 
+            self.generationSticked =pickle.load(file)
+
+        with open(f"{savefolder}/linesStickedMean_{savename}.pkl", 'rb') as file: 
+            self.linesStickedMean=pickle.load(file)
+
+        with open(f"{savefolder}/stdgenStocked_{savename}.pkl", 'rb') as file: 
+            self.stdgenStocked=pickle.load(file)
+        
